@@ -1,14 +1,17 @@
 # Autogen-Orchestrator
 
-A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev, QA, Security, and Docs, enabling dynamic multi-agent conversations, task distribution, evaluation, and correction loops. Linux/WSL-first, extensible with adapters for external CLIs and APIs, designed to evolve into a full AI-assisted software company.
+A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev, QA, Security, Docs, Architect, Research, and DevOps, enabling dynamic multi-agent conversations, task distribution, evaluation, and correction loops. Linux/WSL-first, extensible with adapters for external CLIs and APIs, designed to evolve into a full AI-assisted software company.
 
 ## Features
 
-- **Multi-Agent Architecture**: PM, Dev, QA, Security, and Docs agents with specialized capabilities
+- **Multi-Agent Architecture**: PM, Dev, QA, Security, Docs, Architect, Research, and DevOps agents with specialized capabilities
+- **Workflow Engine**: Define and execute multi-step workflows with dependencies and parallel execution
 - **Dynamic Conversations**: Flexible conversation modes (Sequential, Round-Robin, Dynamic, Broadcast)
 - **Task Distribution**: Priority-based task queue with dependency management
 - **Correction Loops**: Iterative improvement through evaluation and correction
-- **Extensible Adapters**: Placeholder adapters for CLI, API, and VCS integrations
+- **Memory & Knowledge**: Agent memory system and shared knowledge base
+- **Plugin System**: Extensible architecture for custom agents, adapters, and evaluators
+- **CLI Adapter**: Execute shell commands with sandboxing and timeout controls
 - **Observability**: Built-in logging, metrics collection, and distributed tracing
 - **Cross-Platform**: Linux-first with WSL and cross-OS awareness
 
@@ -23,7 +26,10 @@ autogen-orchestrator/
 │   │   ├── dev_agent.py  # Developer agent
 │   │   ├── qa_agent.py   # QA agent
 │   │   ├── security_agent.py  # Security agent
-│   │   └── docs_agent.py # Documentation agent
+│   │   ├── docs_agent.py # Documentation agent
+│   │   ├── architect_agent.py  # System Architect agent
+│   │   ├── research_agent.py   # Research agent
+│   │   └── devops_agent.py     # DevOps agent
 │   ├── contracts/        # Interface definitions
 │   │   ├── agent_contract.py    # Agent interface
 │   │   ├── adapter_contract.py  # Adapter interface
@@ -33,8 +39,17 @@ autogen-orchestrator/
 │   │   ├── task.py             # Task management
 │   │   ├── conversation.py     # Conversation management
 │   │   └── correction_loop.py  # Correction loop logic
+│   ├── workflow/         # Workflow engine
+│   │   ├── definition.py       # Workflow and step definitions
+│   │   └── engine.py           # Workflow execution engine
+│   ├── memory/           # Memory and knowledge management
+│   │   ├── memory_store.py     # Agent memory storage
+│   │   └── knowledge_base.py   # Shared knowledge repository
+│   ├── plugins/          # Plugin system
+│   │   ├── base.py             # Plugin base classes
+│   │   └── manager.py          # Plugin lifecycle management
 │   ├── adapters/         # External system adapters
-│   │   ├── cli_adapter.py      # CLI integration (placeholder)
+│   │   ├── cli_adapter.py      # CLI integration with subprocess execution
 │   │   ├── api_adapter.py      # API integration (placeholder)
 │   │   └── vcs_adapter.py      # VCS integration (placeholder)
 │   ├── observability/    # Monitoring and tracing
@@ -44,10 +59,10 @@ autogen-orchestrator/
 │   └── utils/            # Utilities
 │       ├── platform.py         # Cross-OS utilities
 │       └── config.py           # Configuration management
-├── tests/                # Test suite
+├── tests/                # Test suite (160+ tests)
+├── BACKLOG.md            # Evolutionary backlog
 ├── pyproject.toml        # Project configuration
 └── README.md
-```
 
 ## Installation
 
@@ -146,6 +161,90 @@ if __name__ == "__main__":
 - API documentation
 - User guides
 - Code documentation
+
+### Architect Agent (NEW)
+- System design and architecture decisions
+- Technical specifications
+- Technology stack recommendations
+- Design pattern suggestions
+- Component interaction design
+
+### Research Agent (NEW)
+- Information gathering and synthesis
+- Technology research and comparison
+- Best practices identification
+- Knowledge base maintenance
+
+### DevOps Agent (NEW)
+- CI/CD pipeline design and management
+- Infrastructure as Code (IaC)
+- Deployment automation
+- Container orchestration
+
+## Workflow Engine (NEW)
+
+Define and execute multi-step workflows with dependencies:
+
+```python
+from orchestrator.workflow import Workflow, WorkflowStep, WorkflowStepType, WorkflowEngine, WorkflowTemplates
+
+# Use a pre-built template
+workflow = WorkflowTemplates.feature_development()
+
+# Or create custom workflows
+workflow = Workflow(name="Custom Workflow")
+step1 = WorkflowStep(name="plan", step_type=WorkflowStepType.TASK, config={"agent": "PMAgent"})
+step2 = WorkflowStep(name="develop", step_type=WorkflowStepType.TASK, config={"agent": "DevAgent"}, dependencies=[step1.id])
+workflow.add_step(step1)
+workflow.add_step(step2)
+
+# Execute the workflow
+engine = WorkflowEngine()
+engine.register_agents(orchestrator.agents)
+result = await engine.execute(workflow)
+```
+
+## Memory & Knowledge System (NEW)
+
+Agents can store and retrieve memories and knowledge:
+
+```python
+from orchestrator.memory import MemoryStore, KnowledgeBase, KnowledgeCategory
+
+# Agent memory
+memory = MemoryStore(owner="DevAgent")
+memory.store("Important finding about the codebase", tags=["architecture"])
+results = memory.search(query="codebase")
+
+# Shared knowledge base
+kb = KnowledgeBase.create_with_defaults()
+kb.add("API Design Guidelines", "Use RESTful conventions...", KnowledgeCategory.BEST_PRACTICE)
+entries = kb.search(category=KnowledgeCategory.BEST_PRACTICE)
+```
+
+## Plugin System (NEW)
+
+Extend functionality with plugins:
+
+```python
+from orchestrator.plugins import Plugin, PluginMetadata, PluginType, PluginManager
+
+class MyPlugin(Plugin):
+    @property
+    def metadata(self):
+        return PluginMetadata(
+            name="my_plugin",
+            version="1.0.0",
+            description="Custom plugin",
+            plugin_type=PluginType.PROCESSOR
+        )
+    
+    async def execute(self, context):
+        return {"processed": True}
+
+manager = PluginManager()
+await manager.register(MyPlugin())
+```
 
 ## Configuration
 
