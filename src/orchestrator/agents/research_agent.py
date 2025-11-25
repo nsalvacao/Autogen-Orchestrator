@@ -21,8 +21,12 @@ class ResearchAgent(BaseAgent):
     - Knowledge base maintenance
     """
 
-    def __init__(self, name: str = "ResearchAgent"):
+    def __init__(self, name: str = "ResearchAgent", enable_autogen: bool = False):
         """Initialize the Research Agent."""
+        system_message = (
+            "You are a research specialist with expertise in information gathering, analysis, "
+            "and knowledge synthesis. You excel at evaluating technologies, best practices, and providing insights."
+        )
         super().__init__(
             name=name,
             description=(
@@ -33,6 +37,8 @@ class ResearchAgent(BaseAgent):
                 AgentCapability.EVALUATION,
                 AgentCapability.DOCUMENTATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._research_cache: dict[str, dict[str, Any]] = {}
         self._knowledge_base: list[dict[str, Any]] = []
@@ -47,6 +53,9 @@ class ResearchAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
         content = message.content.lower()
 
         if "research" in content or "find" in content or "search" in content:
@@ -76,6 +85,9 @@ class ResearchAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
         # Perform research based on task
         research_result = await self._conduct_research(task)
         self._knowledge_base.append(research_result)
@@ -271,3 +283,14 @@ class ResearchAgent(BaseAgent):
                 results.append(entry)
 
         return results
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """Handle a task using AutoGen LLM for intelligent research."""
+        task_prompt = (
+            f"As a research specialist, research and analyze the following task:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n\n"
+            "Please provide:\n1. Key findings\n2. Technology analysis\n3. Best practices\n4. Recommendations"
+        )
+        response = await self._generate_autogen_response(task_prompt)
+        return {"content": response, "success": True, "artifacts": [], "needs_correction": False}

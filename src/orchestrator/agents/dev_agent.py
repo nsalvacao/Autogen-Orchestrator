@@ -19,8 +19,13 @@ class DevAgent(BaseAgent):
     - Code review participation
     """
 
-    def __init__(self, name: str = "DevAgent"):
+    def __init__(self, name: str = "DevAgent", enable_autogen: bool = False):
         """Initialize the Dev Agent."""
+        system_message = (
+            "You are a senior software developer with expertise in multiple programming languages. "
+            "You excel at code generation, bug fixing, code review, and refactoring. "
+            "You write clean, maintainable, and well-tested code following best practices."
+        )
         super().__init__(
             name=name,
             description=(
@@ -31,6 +36,8 @@ class DevAgent(BaseAgent):
                 AgentCapability.CODING,
                 AgentCapability.CODE_REVIEW,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._code_artifacts: list[dict[str, Any]] = []
 
@@ -44,6 +51,11 @@ class DevAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        # Try AutoGen first if enabled
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
+        # Fallback to rule-based responses
         content = message.content.lower()
 
         if "implement" in content or "code" in content or "write" in content:
@@ -70,6 +82,11 @@ class DevAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        # If AutoGen is enabled, use it for more intelligent task handling
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
+        # Fallback to rule-based handling
         task_type = getattr(task, "task_type", None)
         task_type_value = task_type.value if task_type else "unknown"
 
@@ -170,3 +187,30 @@ class DevAgent(BaseAgent):
             "4. Verify behavior preservation\n"
             "5. Update tests as needed"
         )
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """
+        Handle a task using AutoGen LLM.
+        
+        Args:
+            task: The task to handle.
+            
+        Returns:
+            Dictionary with task result.
+        """
+        task_prompt = (
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n"
+            f"Type: {getattr(task, 'task_type', 'unknown')}\n"
+            f"Priority: {getattr(task, 'priority', 'unknown')}\n\n"
+            "Please provide a detailed response for this task."
+        )
+        
+        response = await self._generate_autogen_response(task_prompt)
+        
+        return {
+            "content": response,
+            "success": True,
+            "artifacts": [],
+            "needs_correction": False,
+        }

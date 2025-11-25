@@ -20,8 +20,13 @@ class SecurityAgent(BaseAgent):
     - Threat modeling
     """
 
-    def __init__(self, name: str = "SecurityAgent"):
+    def __init__(self, name: str = "SecurityAgent", enable_autogen: bool = False):
         """Initialize the Security Agent."""
+        system_message = (
+            "You are a security expert with deep knowledge of cybersecurity, "
+            "vulnerability assessment, and secure coding practices. You excel at "
+            "identifying security risks, conducting threat modeling, and ensuring compliance."
+        )
         super().__init__(
             name=name,
             description=(
@@ -33,6 +38,8 @@ class SecurityAgent(BaseAgent):
                 AgentCapability.CODE_REVIEW,
                 AgentCapability.EVALUATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._security_findings: list[dict[str, Any]] = []
 
@@ -46,6 +53,9 @@ class SecurityAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
         content = message.content.lower()
 
         if "vulnerability" in content or "scan" in content:
@@ -72,6 +82,9 @@ class SecurityAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
         task_type = getattr(task, "task_type", None)
         task_type_value = task_type.value if task_type else "unknown"
 
@@ -177,3 +190,19 @@ class SecurityAgent(BaseAgent):
             "4. Risk assessment\n"
             "5. Mitigation recommendations"
         )
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """Handle a task using AutoGen LLM for intelligent security analysis."""
+        task_prompt = (
+            f"As a security expert, analyze the following task for security implications:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n"
+            f"Type: {getattr(task, 'task_type', 'unknown')}\n\n"
+            "Please provide:\n"
+            "1. Security risks and vulnerabilities\n"
+            "2. Threat modeling considerations\n"
+            "3. Recommended security controls\n"
+            "4. Compliance considerations"
+        )
+        response = await self._generate_autogen_response(task_prompt)
+        return {"content": response, "success": True, "artifacts": [], "needs_correction": False}

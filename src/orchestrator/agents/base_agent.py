@@ -5,6 +5,7 @@ This module provides a concrete base class that implements common
 functionality shared by all agents.
 """
 
+import os
 from abc import abstractmethod
 from typing import Any
 
@@ -14,6 +15,14 @@ from orchestrator.contracts.agent_contract import (
     AgentMessage,
     AgentResponse,
 )
+
+# AutoGen imports (optional - gracefully handle if not available)
+try:
+    from autogen import AssistantAgent, config_list_from_json
+    AUTOGEN_AVAILABLE = True
+except ImportError:
+    AUTOGEN_AVAILABLE = False
+    AssistantAgent = None
 
 
 class BaseAgent(AgentContract):
@@ -29,6 +38,8 @@ class BaseAgent(AgentContract):
         name: str,
         description: str,
         capabilities: list[AgentCapability],
+        enable_autogen: bool = False,
+        system_message: str | None = None,
     ):
         """
         Initialize the base agent.
@@ -37,11 +48,15 @@ class BaseAgent(AgentContract):
             name: Unique name for the agent.
             description: Description of the agent's purpose.
             capabilities: List of capabilities this agent provides.
+            enable_autogen: Whether to enable AutoGen LLM integration.
+            system_message: Optional system message for the AutoGen agent.
         """
         self._name = name
         self._description = description
         self._capabilities = capabilities
-        # TODO: Add AutoGen AssistantAgent configuration when integrating with AutoGen
+        self._enable_autogen = enable_autogen and AUTOGEN_AVAILABLE
+        self._autogen_agent: Any = None
+        self._system_message = system_message or self._get_default_system_message()
         self._initialized = False
         self._message_history: list[AgentMessage] = []
 
@@ -67,12 +82,20 @@ class BaseAgent(AgentContract):
 
     async def initialize(self) -> None:
         """Initialize the agent."""
-        # Placeholder for AutoGen agent initialization
-        # In future, this will initialize the AutoGen AssistantAgent
+        if self._enable_autogen and AUTOGEN_AVAILABLE:
+            # Initialize AutoGen AssistantAgent
+            llm_config = self._get_llm_config()
+            if llm_config:
+                self._autogen_agent = AssistantAgent(
+                    name=self._name,
+                    system_message=self._system_message,
+                    llm_config=llm_config,
+                )
         self._initialized = True
 
     async def shutdown(self) -> None:
         """Shutdown the agent gracefully."""
+        self._autogen_agent = None
         self._initialized = False
 
     async def process_message(self, message: AgentMessage) -> AgentResponse:
@@ -174,3 +197,77 @@ class BaseAgent(AgentContract):
     def get_message_history(self) -> list[AgentMessage]:
         """Get the agent's message history."""
         return self._message_history.copy()
+
+    def _get_llm_config(self) -> dict[str, Any] | None:
+        """
+        Get LLM configuration for AutoGen.
+        
+        Returns:
+            LLM config dictionary or None if not configured.
+        """
+        api_key = os.environ.get("ORCHESTRATOR_LLM_API_KEY")
+        if not api_key:
+            return None
+        
+        model = os.environ.get("ORCHESTRATOR_LLM_MODEL", "gpt-4")
+        max_tokens = int(os.environ.get("ORCHESTRATOR_LLM_MAX_TOKENS", "4096"))
+        temperature = float(os.environ.get("ORCHESTRATOR_LLM_TEMPERATURE", "0.7"))
+        
+        return {
+            "config_list": [
+                {
+                    "model": model,
+                    "api_key": api_key,
+                }
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+    
+    def _get_default_system_message(self) -> str:
+        """
+        Get the default system message for the agent.
+        
+        Returns:
+            Default system message string.
+        """
+        return (
+            f"You are {self._name}, an AI assistant specialized in {self._description}. "
+            f"Your capabilities include: {', '.join(cap.value for cap in self._capabilities)}. "
+            "Provide helpful, accurate, and professional responses."
+        )
+    
+    @property
+    def is_autogen_enabled(self) -> bool:
+        """Check if AutoGen integration is enabled."""
+        return self._enable_autogen and self._autogen_agent is not None
+    
+    async def _generate_autogen_response(self, prompt: str) -> str:
+        """
+        Generate a response using AutoGen LLM.
+        
+        Args:
+            prompt: The prompt to send to the LLM.
+            
+        Returns:
+            The generated response string.
+        """
+        if not self.is_autogen_enabled:
+            return "AutoGen is not enabled or configured."
+        
+        try:
+            # Use AutoGen's generate_reply method
+            # Note: This is a simplified implementation
+            # In production, you'd want more sophisticated conversation handling
+            response = self._autogen_agent.generate_reply(
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            if isinstance(response, str):
+                return response
+            elif isinstance(response, dict) and "content" in response:
+                return response["content"]
+            else:
+                return str(response)
+        except Exception as e:
+            return f"Error generating AutoGen response: {str(e)}"
