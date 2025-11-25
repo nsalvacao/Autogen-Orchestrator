@@ -2,11 +2,14 @@
 Agents module - Contains all agent implementations.
 """
 
+from orchestrator.agents.architect_agent import ArchitectAgent
 from orchestrator.agents.base_agent import BaseAgent
 from orchestrator.agents.dev_agent import DevAgent
+from orchestrator.agents.devops_agent import DevOpsAgent
 from orchestrator.agents.docs_agent import DocsAgent
 from orchestrator.agents.pm_agent import PMAgent
 from orchestrator.agents.qa_agent import QAAgent
+from orchestrator.agents.research_agent import ResearchAgent
 from orchestrator.agents.security_agent import SecurityAgent
 
 __all__ = [
@@ -16,4 +19,7 @@ __all__ = [
     "QAAgent",
     "SecurityAgent",
     "DocsAgent",
+    "ArchitectAgent",
+    "ResearchAgent",
+    "DevOpsAgent",
 ]
