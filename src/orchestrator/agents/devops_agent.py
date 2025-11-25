@@ -311,6 +311,7 @@ class DevOpsAgent(BaseAgent):
     def get_pipeline_configs(self) -> list[dict[str, Any]]:
         """Get all pipeline configurations."""
         return self._pipeline_configs.copy()
+    
     async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
         """Handle a task using AutoGen LLM for intelligent DevOps planning."""
         task_prompt = (
