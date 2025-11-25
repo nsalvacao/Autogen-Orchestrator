@@ -1,13 +1,15 @@
 # Autogen-Orchestrator
 
-A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev, QA, Security, Docs, Architect, Research, and DevOps, enabling dynamic multi-agent conversations, task distribution, evaluation, and correction loops. Linux/WSL-first, extensible with adapters for external CLIs and APIs, designed to evolve into a full AI-assisted software company.
+A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev, QA, Security, Docs, Architect, Research, DevOps, and Data, enabling dynamic multi-agent conversations, task distribution, evaluation, and correction loops. Linux/WSL-first, extensible with adapters for external CLIs and APIs, designed to evolve into a full AI-assisted software company.
 
 ## Features
 
-- **Multi-Agent Architecture**: PM, Dev, QA, Security, Docs, Architect, Research, and DevOps agents with specialized capabilities
+- **Multi-Agent Architecture**: PM, Dev, QA, Security, Docs, Architect, Research, DevOps, and Data agents with specialized capabilities
 - **Workflow Engine**: Define and execute multi-step workflows with dependencies and parallel execution
 - **Dynamic Conversations**: Flexible conversation modes (Sequential, Round-Robin, Dynamic, Broadcast)
 - **Task Distribution**: Priority-based task queue with dependency management
+- **Task Templates**: Reusable task templates with variable substitution for common development scenarios
+- **Task Retry & Recovery**: Automatic retry logic with configurable strategies (immediate, linear, exponential backoff)
 - **Correction Loops**: Iterative improvement through evaluation and correction
 - **Memory & Knowledge**: Agent memory system and shared knowledge base
 - **Plugin System**: Extensible architecture for custom agents, adapters, and evaluators
@@ -29,14 +31,15 @@ autogen-orchestrator/
 │   │   ├── docs_agent.py # Documentation agent
 │   │   ├── architect_agent.py  # System Architect agent
 │   │   ├── research_agent.py   # Research agent
-│   │   └── devops_agent.py     # DevOps agent
+│   │   ├── devops_agent.py     # DevOps agent
+│   │   └── data_agent.py       # Data agent
 │   ├── contracts/        # Interface definitions
 │   │   ├── agent_contract.py    # Agent interface
 │   │   ├── adapter_contract.py  # Adapter interface
 │   │   └── evaluation_contract.py  # Evaluation interface
 │   ├── core/             # Core orchestration logic
 │   │   ├── orchestrator.py     # Main orchestrator
-│   │   ├── task.py             # Task management
+│   │   ├── task.py             # Task management, templates, retry
 │   │   ├── conversation.py     # Conversation management
 │   │   └── correction_loop.py  # Correction loop logic
 │   ├── workflow/         # Workflow engine
@@ -59,7 +62,7 @@ autogen-orchestrator/
 │   └── utils/            # Utilities
 │       ├── platform.py         # Cross-OS utilities
 │       └── config.py           # Configuration management
-├── tests/                # Test suite (160+ tests)
+├── tests/                # Test suite (230+ tests)
 ├── BACKLOG.md            # Evolutionary backlog
 ├── pyproject.toml        # Project configuration
 └── README.md
@@ -180,6 +183,80 @@ if __name__ == "__main__":
 - Infrastructure as Code (IaC)
 - Deployment automation
 - Container orchestration
+
+### Data Agent (NEW)
+- Data modeling and schema design
+- Database design and optimization
+- Data pipeline architecture (ETL/ELT)
+- Data quality and validation
+- Data analysis and insights
+
+## Task Templates (NEW)
+
+Create tasks from reusable templates with variable substitution:
+
+```python
+from orchestrator.core.task import TaskTemplates, TaskTemplateLibrary
+
+# Use pre-built templates
+library = TaskTemplates.get_default_library()
+
+# Create a feature implementation task
+task = library.create_task_from_template(
+    "feature_implementation",
+    title="Add User Authentication",
+    variables={
+        "feature_name": "OAuth2 Login",
+        "requirements": "Support Google and GitHub SSO",
+        "acceptance_criteria": "Users can log in via OAuth2 providers",
+    },
+)
+
+# Or use templates directly
+template = TaskTemplates.bug_fix()
+task = template.create_task(
+    title="Fix Login Bug",
+    variables={
+        "bug_description": "Login fails on Safari",
+        "steps_to_reproduce": "1. Open Safari\n2. Click login",
+    },
+)
+```
+
+Available templates: `feature_implementation`, `bug_fix`, `code_review`, `security_audit`, `api_endpoint`, `database_migration`, `test_suite`, `documentation`.
+
+## Task Retry & Recovery (NEW)
+
+Configure automatic retry for failed tasks:
+
+```python
+from orchestrator.core.task import Task, RetryConfig, RetryStrategy
+
+# Configure retry behavior
+retry_config = RetryConfig(
+    strategy=RetryStrategy.EXPONENTIAL,  # or LINEAR, IMMEDIATE, NONE
+    max_retries=5,
+    base_delay_seconds=2.0,
+    max_delay_seconds=60.0,
+    retry_on_errors=["timeout", "connection"],  # Empty = retry on all errors
+)
+
+task = Task(
+    title="Deploy to Production",
+    description="Deploy the application",
+    retry_config=retry_config,
+)
+
+# Task queue handles retry logic automatically
+queue = TaskQueue()
+queue.add_task(task)
+
+# On failure, task enters RETRYING state
+will_retry = queue.mark_failed(task.id, "Connection timeout")
+
+# Process tasks ready for retry
+retried_ids = queue.process_retries()
+```
 
 ## Workflow Engine (NEW)
 
