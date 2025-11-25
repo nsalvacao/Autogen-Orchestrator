@@ -15,6 +15,7 @@ A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev,
 - **Memory & Knowledge**: Agent memory system and shared knowledge base
 - **Plugin System**: Extensible architecture for custom agents, adapters, and evaluators
 - **CLI Adapter**: Execute shell commands with sandboxing and timeout controls
+- **REST API Adapter**: Full HTTP client with authentication and error handling (NEW in v0.4.0)
 - **Observability**: Built-in logging, metrics collection, and distributed tracing
 - **Cross-Platform**: Linux-first with WSL and cross-OS awareness
 
@@ -54,7 +55,7 @@ autogen-orchestrator/
 │   │   └── manager.py          # Plugin lifecycle management
 │   ├── adapters/         # External system adapters
 │   │   ├── cli_adapter.py      # CLI integration with subprocess execution
-│   │   ├── api_adapter.py      # API integration (placeholder)
+│   │   ├── api_adapter.py      # REST API client with authentication (NEW)
 │   │   └── vcs_adapter.py      # VCS integration (placeholder)
 │   ├── observability/    # Monitoring and tracing
 │   │   ├── logger.py           # Structured logging
@@ -368,6 +369,69 @@ python examples/autogen_integration_example.py
 
 See `examples/autogen_integration_example.py` for a complete demonstration.
 
+## REST API Adapter (NEW in v0.4.0)
+
+The orchestrator now includes a full-featured REST API client adapter:
+
+```python
+from orchestrator.adapters.api_adapter import APIAdapter, AuthType, HTTPMethod
+
+# Create adapter with authentication
+adapter = APIAdapter(
+    base_url="https://api.example.com",
+    auth_type=AuthType.BEARER,
+    auth_token="your_token_here",
+    timeout=30,
+)
+
+# Connect and make requests
+await adapter.connect()
+
+# GET request
+result = await adapter.get("/api/users")
+if result.success:
+    users = result.data["response"]
+
+# POST request with JSON
+result = await adapter.post(
+    "/api/users",
+    json={"name": "John", "email": "john@example.com"}
+)
+
+# Cleanup
+await adapter.disconnect()
+```
+
+**Features:**
+- All HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
+- Multiple authentication types (Bearer, API Key, Basic, Custom)
+- Async request handling with aiohttp
+- Configurable timeout and custom headers
+- Comprehensive error handling
+
+**Authentication Types:**
+```python
+# Bearer Token
+adapter = APIAdapter(auth_type=AuthType.BEARER, auth_token="token")
+
+# API Key (X-API-Key header)
+adapter = APIAdapter(auth_type=AuthType.API_KEY, auth_token="key")
+
+# No authentication
+adapter = APIAdapter(auth_type=AuthType.NONE)
+```
+
+**Example:**
+```bash
+# Install aiohttp for API adapter
+pip install aiohttp
+
+# Run the comprehensive example
+python examples/api_adapter_example.py
+```
+
+See `examples/api_adapter_example.py` for complete demonstrations including error handling and different authentication patterns.
+
 ## Configuration
 
 Configuration can be set via environment variables:
@@ -438,7 +502,7 @@ mypy src/
 - [x] AutoGen integration ✅ NEW in v0.4.0
 - [x] LLM provider configuration ✅ NEW in v0.4.0
 - [x] CLI adapter implementation ✅
-- [ ] API adapter implementation
+- [x] REST API adapter implementation ✅ NEW in v0.4.0
 - [ ] VCS/Git adapter implementation
 
 ### Phase 3 - Advanced Features
