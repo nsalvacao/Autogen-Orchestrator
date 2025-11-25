@@ -4,7 +4,7 @@ Task - Defines the task structure and management for the orchestrator.
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -247,7 +247,6 @@ class Task:
 
         if self.can_retry():
             delay = self.retry_config.calculate_delay(self.retry_state.attempt)
-            from datetime import timedelta
             self.retry_state.next_retry_at = datetime.now() + timedelta(seconds=delay)
             self.status = TaskStatus.RETRYING
         else:
