@@ -157,7 +157,8 @@ class CorrectionLoop:
             task.correction_count += 1
             task.update_status(TaskStatus.NEEDS_CORRECTION)
 
-        # Max iterations reached
+        # Max iterations reached - update task status to reflect failure
+        task.update_status(TaskStatus.FAILED)
         return CorrectionLoopResult(
             success=False,
             final_output=current_output,

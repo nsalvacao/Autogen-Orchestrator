@@ -8,6 +8,7 @@ to ensure the orchestrator works correctly on Linux, WSL, and Windows.
 import os
 import platform
 import sys
+import tempfile
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -149,7 +150,7 @@ def get_platform_info() -> PlatformInfo:
         is_wsl=os_type == OSType.WSL,
         is_container=_detect_container(),
         home_dir=Path.home(),
-        temp_dir=Path(os.environ.get("TMPDIR", os.environ.get("TEMP", "/tmp"))),
+        temp_dir=Path(tempfile.gettempdir()),
     )
 
 

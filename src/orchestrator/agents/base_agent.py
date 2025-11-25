@@ -29,8 +29,6 @@ class BaseAgent(AgentContract):
         name: str,
         description: str,
         capabilities: list[AgentCapability],
-        # Placeholder for AutoGen configuration - to be implemented
-        autogen_config_placeholder: str = "NOT_CONFIGURED",
     ):
         """
         Initialize the base agent.
@@ -39,12 +37,11 @@ class BaseAgent(AgentContract):
             name: Unique name for the agent.
             description: Description of the agent's purpose.
             capabilities: List of capabilities this agent provides.
-            autogen_config_placeholder: Placeholder for future AutoGen integration.
         """
         self._name = name
         self._description = description
         self._capabilities = capabilities
-        self._autogen_config = autogen_config_placeholder
+        # TODO: Add AutoGen AssistantAgent configuration when integrating with AutoGen
         self._initialized = False
         self._message_history: list[AgentMessage] = []
 
