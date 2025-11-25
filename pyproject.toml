@@ -33,6 +33,9 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+adapters = [
+    "aiohttp>=3.9.0",  # For REST API adapter
+]
 
 [project.urls]
 "Homepage" = "https://github.com/nsalvacao/Autogen-Orchestrator"
