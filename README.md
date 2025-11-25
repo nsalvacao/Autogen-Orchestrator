@@ -4,6 +4,7 @@ A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev,
 
 ## Features
 
+- **AutoGen LLM Integration**: Optional AI-powered agent responses using AutoGen framework (NEW in v0.4.0)
 - **Multi-Agent Architecture**: PM, Dev, QA, Security, Docs, Architect, Research, DevOps, and Data agents with specialized capabilities
 - **Workflow Engine**: Define and execute multi-step workflows with dependencies and parallel execution
 - **Dynamic Conversations**: Flexible conversation modes (Sequential, Round-Robin, Dynamic, Broadcast)
@@ -101,12 +102,14 @@ async def main():
     # Create the orchestrator
     orchestrator = Orchestrator()
 
-    # Register agents
-    orchestrator.register_agent(PMAgent())
-    orchestrator.register_agent(DevAgent())
-    orchestrator.register_agent(QAAgent())
-    orchestrator.register_agent(SecurityAgent())
-    orchestrator.register_agent(DocsAgent())
+    # Register agents (with optional AutoGen LLM integration)
+    # Set ORCHESTRATOR_LLM_API_KEY environment variable to enable AutoGen
+    enable_autogen = True  # or False for rule-based responses
+    orchestrator.register_agent(PMAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(DevAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(QAAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(SecurityAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(DocsAgent(enable_autogen=enable_autogen))
 
     # Start the orchestrator
     await orchestrator.start()
@@ -323,6 +326,48 @@ manager = PluginManager()
 await manager.register(MyPlugin())
 ```
 
+## AutoGen LLM Integration (NEW in v0.4.0)
+
+The orchestrator now supports optional AutoGen framework integration for AI-powered agent responses:
+
+```python
+from orchestrator.agents import DevAgent, PMAgent
+
+# Enable AutoGen for intelligent LLM-powered responses
+# Requires ORCHESTRATOR_LLM_API_KEY environment variable
+dev_agent = DevAgent(enable_autogen=True)
+pm_agent = PMAgent(enable_autogen=True)
+
+# Without AutoGen (rule-based responses)
+dev_agent = DevAgent(enable_autogen=False)  # or just DevAgent()
+```
+
+**Features:**
+- All 9 agents support AutoGen integration (PM, Dev, QA, Security, Docs, Architect, Research, DevOps, Data)
+- Graceful fallback to rule-based responses when API key not configured
+- Configurable via environment variables
+- Per-agent enable/disable control
+
+**Configuration:**
+```bash
+# Required for AutoGen integration
+export ORCHESTRATOR_LLM_API_KEY=your_openai_api_key
+
+# Optional - customize LLM behavior
+export ORCHESTRATOR_LLM_MODEL=gpt-4  # default: gpt-4
+export ORCHESTRATOR_LLM_MAX_TOKENS=4096
+export ORCHESTRATOR_LLM_TEMPERATURE=0.7
+```
+
+**Example:**
+```bash
+# Run the AutoGen integration example
+export ORCHESTRATOR_LLM_API_KEY=your_key
+python examples/autogen_integration_example.py
+```
+
+See `examples/autogen_integration_example.py` for a complete demonstration.
+
 ## Configuration
 
 Configuration can be set via environment variables:
@@ -334,9 +379,9 @@ export ORCHESTRATOR_ENV=development  # development, testing, staging, production
 # Debug mode
 export ORCHESTRATOR_DEBUG=false
 
-# LLM Configuration (placeholder)
-export ORCHESTRATOR_LLM_PROVIDER=NOT_CONFIGURED
-export ORCHESTRATOR_LLM_MODEL=NOT_CONFIGURED
+# LLM Configuration (AutoGen Integration - NEW in v0.4.0)
+export ORCHESTRATOR_LLM_API_KEY=your_openai_api_key  # Required for AutoGen LLM integration
+export ORCHESTRATOR_LLM_MODEL=gpt-4  # or gpt-3.5-turbo, gpt-4-turbo, etc.
 export ORCHESTRATOR_LLM_MAX_TOKENS=4096
 export ORCHESTRATOR_LLM_TEMPERATURE=0.7
 
@@ -381,7 +426,7 @@ mypy src/
 
 ## Roadmap
 
-### Phase 1 (Current) - MVP
+### Phase 1 - MVP ✅ COMPLETED
 - [x] Core agent framework
 - [x] Task management and distribution
 - [x] Dynamic conversation system
@@ -389,11 +434,12 @@ mypy src/
 - [x] Placeholder adapters
 - [x] Basic observability
 
-### Phase 2 - Integration
-- [ ] AutoGen integration
-- [ ] LLM provider configuration
-- [ ] CLI adapter implementation
+### Phase 2 - Integration (In Progress)
+- [x] AutoGen integration ✅ NEW in v0.4.0
+- [x] LLM provider configuration ✅ NEW in v0.4.0
+- [x] CLI adapter implementation ✅
 - [ ] API adapter implementation
+- [ ] VCS/Git adapter implementation
 
 ### Phase 3 - Advanced Features
 - [ ] VCS/Git integration
