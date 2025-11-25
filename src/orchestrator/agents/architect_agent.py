@@ -76,7 +76,9 @@ class ArchitectAgent(BaseAgent):
             Dictionary with task result.
         """
         task_type = getattr(task, "task_type", None)
-        task_type_value = task_type.value if task_type else "unknown"
+        task_type_value = "unknown"
+        if task_type is not None and hasattr(task_type, "value"):
+            task_type_value = task_type.value
 
         if task_type_value in ("planning", "feature"):
             return await self._handle_architecture_task(task)

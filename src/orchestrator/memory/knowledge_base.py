@@ -184,20 +184,20 @@ class KnowledgeBase:
 
         # Start with category or tag filtered set
         if category:
-            candidate_ids = self._category_index.get(category, set())
+            cat_ids = self._category_index.get(category, set())
             candidates = [
                 self._entries[eid]
-                for eid in candidate_ids
+                for eid in cat_ids
                 if eid in self._entries
             ]
         elif tags:
-            candidate_ids: set[str] = set()
+            tag_ids: set[str] = set()
             for tag in tags:
                 if tag in self._tag_index:
-                    candidate_ids.update(self._tag_index[tag])
+                    tag_ids.update(self._tag_index[tag])
             candidates = [
                 self._entries[eid]
-                for eid in candidate_ids
+                for eid in tag_ids
                 if eid in self._entries
             ]
         else:

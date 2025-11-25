@@ -263,15 +263,20 @@ class CLIAdapter(AdapterContract):
         if self._allowed_commands is None:
             return True  # No restrictions if allowlist not set
 
-        parts = command.split()
+        # Use shlex to properly parse command to handle edge cases
+        import shlex
+        try:
+            parts = shlex.split(command)
+        except ValueError:
+            return False
+
         if not parts:
             return False
 
         cmd = parts[0]
-        return any(
-            cmd == allowed or cmd.startswith(allowed + " ")
-            for allowed in self._allowed_commands
-        )
+        # Only check if the base command is in the allowlist
+        # The actual command (parts[0]) must exactly match an allowed command
+        return cmd in self._allowed_commands
 
     async def health_check(self) -> AdapterResult:
         """
