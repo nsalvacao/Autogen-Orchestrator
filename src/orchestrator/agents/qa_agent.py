@@ -20,8 +20,12 @@ class QAAgent(BaseAgent):
     - Quality validation
     """
 
-    def __init__(self, name: str = "QAAgent"):
+    def __init__(self, name: str = "QAAgent", enable_autogen: bool = False):
         """Initialize the QA Agent."""
+        system_message = (
+            "You are a senior QA engineer with expertise in test planning, test automation, and quality assurance. "
+            "You excel at creating comprehensive test strategies, identifying edge cases, and ensuring software quality."
+        )
         super().__init__(
             name=name,
             description=(
@@ -32,6 +36,8 @@ class QAAgent(BaseAgent):
                 AgentCapability.TESTING,
                 AgentCapability.EVALUATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._test_results: list[dict[str, Any]] = []
 
@@ -45,6 +51,11 @@ class QAAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        # Try AutoGen first if enabled
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
+        # Fallback to rule-based responses
         content = message.content.lower()
 
         if "test" in content:
@@ -71,6 +82,11 @@ class QAAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        # If AutoGen is enabled, use it for intelligent task handling
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
+        # Fallback to rule-based handling
         task_type = getattr(task, "task_type", None)
         task_type_value = task_type.value if task_type else "unknown"
 
@@ -179,3 +195,34 @@ class QAAgent(BaseAgent):
             "- Function coverage: Calculating...\n"
             "- Uncovered areas: Identifying..."
         )
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """
+        Handle a task using AutoGen LLM for intelligent QA analysis.
+        
+        Args:
+            task: The task to handle.
+            
+        Returns:
+            Dictionary with task result.
+        """
+        task_prompt = (
+            f"As a QA engineer, analyze the following task and provide comprehensive testing guidance:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n"
+            f"Type: {getattr(task, 'task_type', 'unknown')}\n\n"
+            "Please provide:\n"
+            "1. Test strategy and approach\n"
+            "2. Key test scenarios to cover\n"
+            "3. Edge cases to consider\n"
+            "4. Quality metrics to track"
+        )
+        
+        response = await self._generate_autogen_response(task_prompt)
+        
+        return {
+            "content": response,
+            "success": True,
+            "artifacts": [],
+            "needs_correction": False,
+        }

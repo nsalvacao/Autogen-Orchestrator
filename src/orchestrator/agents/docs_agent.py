@@ -20,8 +20,12 @@ class DocsAgent(BaseAgent):
     - README maintenance
     """
 
-    def __init__(self, name: str = "DocsAgent"):
+    def __init__(self, name: str = "DocsAgent", enable_autogen: bool = False):
         """Initialize the Docs Agent."""
+        system_message = (
+            "You are a technical writer with expertise in creating clear, comprehensive documentation. "
+            "You excel at API documentation, user guides, tutorials, and technical specifications."
+        )
         super().__init__(
             name=name,
             description=(
@@ -31,6 +35,8 @@ class DocsAgent(BaseAgent):
             capabilities=[
                 AgentCapability.DOCUMENTATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._documentation_artifacts: list[dict[str, Any]] = []
 
@@ -44,6 +50,9 @@ class DocsAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
         content = message.content.lower()
 
         if "api" in content:
@@ -70,6 +79,9 @@ class DocsAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
         task_type = getattr(task, "task_type", None)
         task_type_value = task_type.value if task_type else "unknown"
 
@@ -188,3 +200,15 @@ This documentation was auto-generated for task: {task.id}
             "- Inline comments for complex logic\n"
             "- Type hints and annotations"
         )
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """Handle a task using AutoGen LLM for intelligent documentation generation."""
+        task_prompt = (
+            f"As a technical writer, create documentation for the following task:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n"
+            f"Type: {getattr(task, 'task_type', 'unknown')}\n\n"
+            "Please provide clear, comprehensive documentation."
+        )
+        response = await self._generate_autogen_response(task_prompt)
+        return {"content": response, "success": True, "artifacts": [], "needs_correction": False}

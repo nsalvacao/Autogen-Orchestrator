@@ -21,8 +21,12 @@ class ArchitectAgent(BaseAgent):
     - Scalability and performance planning
     """
 
-    def __init__(self, name: str = "ArchitectAgent"):
+    def __init__(self, name: str = "ArchitectAgent", enable_autogen: bool = False):
         """Initialize the Architect Agent."""
+        system_message = (
+            "You are a senior software architect with expertise in system design, architecture patterns, "
+            "and technical decision-making. You excel at designing scalable, maintainable systems."
+        )
         super().__init__(
             name=name,
             description=(
@@ -33,6 +37,8 @@ class ArchitectAgent(BaseAgent):
                 AgentCapability.PLANNING,
                 AgentCapability.EVALUATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._design_artifacts: list[dict[str, Any]] = []
 
@@ -46,6 +52,9 @@ class ArchitectAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
         content = message.content.lower()
 
         if "design" in content or "architecture" in content:
@@ -75,6 +84,9 @@ class ArchitectAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
         task_type = getattr(task, "task_type", None)
         task_type_value = "unknown"
         if task_type is not None and hasattr(task_type, "value"):
@@ -237,3 +249,15 @@ class ArchitectAgent(BaseAgent):
     def get_design_artifacts(self) -> list[dict[str, Any]]:
         """Get all design artifacts created by this agent."""
         return self._design_artifacts.copy()
+    
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """Handle a task using AutoGen LLM for intelligent architecture design."""
+        task_prompt = (
+            f"As a software architect, design the architecture for the following task:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n"
+            f"Type: {getattr(task, 'task_type', 'unknown')}\n\n"
+            "Please provide:\n1. System architecture\n2. Component design\n3. Technology recommendations\n4. Scalability considerations"
+        )
+        response = await self._generate_autogen_response(task_prompt)
+        return {"content": response, "success": True, "artifacts": [], "needs_correction": False}

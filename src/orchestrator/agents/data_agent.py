@@ -21,8 +21,12 @@ class DataAgent(BaseAgent):
     - Data quality and validation
     """
 
-    def __init__(self, name: str = "DataAgent"):
+    def __init__(self, name: str = "DataAgent", enable_autogen: bool = False):
         """Initialize the Data Agent."""
+        system_message = (
+            "You are a data engineer with expertise in data modeling, database design, "
+            "ETL pipelines, and data analysis. You excel at designing efficient data systems."
+        )
         super().__init__(
             name=name,
             description=(
@@ -33,6 +37,8 @@ class DataAgent(BaseAgent):
                 AgentCapability.PLANNING,
                 AgentCapability.EVALUATION,
             ],
+            enable_autogen=enable_autogen,
+            system_message=system_message,
         )
         self._data_models: list[dict[str, Any]] = []
         self._pipeline_configs: list[dict[str, Any]] = []
@@ -47,6 +53,9 @@ class DataAgent(BaseAgent):
         Returns:
             Response content string.
         """
+        if self.is_autogen_enabled:
+            return await self._generate_autogen_response(message.content)
+        
         content = message.content.lower()
 
         if "model" in content or "schema" in content:
@@ -76,6 +85,9 @@ class DataAgent(BaseAgent):
         Returns:
             Dictionary with task result.
         """
+        if self.is_autogen_enabled:
+            return await self._handle_task_with_autogen(task)
+        
         task_type = getattr(task, "task_type", None)
         task_type_value = "unknown"
         if task_type is not None and hasattr(task_type, "value"):
@@ -328,3 +340,14 @@ class DataAgent(BaseAgent):
     def get_pipeline_configs(self) -> list[dict[str, Any]]:
         """Get all pipeline configurations created by this agent."""
         return self._pipeline_configs.copy()
+    async def _handle_task_with_autogen(self, task: Any) -> dict[str, Any]:
+        """Handle a task using AutoGen LLM for intelligent data engineering."""
+        task_prompt = (
+            f"As a data engineer, design the data architecture for the following task:\n\n"
+            f"Task: {task.title}\n"
+            f"Description: {task.description}\n\n"
+            "Please provide:\n1. Data model design\n2. Database schema\n3. ETL pipeline architecture\n4. Data quality measures"
+        )
+        response = await self._generate_autogen_response(task_prompt)
+        return {"content": response, "success": True, "artifacts": [], "needs_correction": False}
+

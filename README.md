@@ -4,6 +4,7 @@ A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev,
 
 ## Features
 
+- **AutoGen LLM Integration**: Optional AI-powered agent responses using AutoGen framework (NEW in v0.4.0)
 - **Multi-Agent Architecture**: PM, Dev, QA, Security, Docs, Architect, Research, DevOps, and Data agents with specialized capabilities
 - **Workflow Engine**: Define and execute multi-step workflows with dependencies and parallel execution
 - **Dynamic Conversations**: Flexible conversation modes (Sequential, Round-Robin, Dynamic, Broadcast)
@@ -14,6 +15,7 @@ A modular AI meta-orchestrator MVP built on AutoGen. Defines agents for PM, Dev,
 - **Memory & Knowledge**: Agent memory system and shared knowledge base
 - **Plugin System**: Extensible architecture for custom agents, adapters, and evaluators
 - **CLI Adapter**: Execute shell commands with sandboxing and timeout controls
+- **REST API Adapter**: Full HTTP client with authentication and error handling (NEW in v0.4.0)
 - **Observability**: Built-in logging, metrics collection, and distributed tracing
 - **Cross-Platform**: Linux-first with WSL and cross-OS awareness
 
@@ -53,7 +55,7 @@ autogen-orchestrator/
 │   │   └── manager.py          # Plugin lifecycle management
 │   ├── adapters/         # External system adapters
 │   │   ├── cli_adapter.py      # CLI integration with subprocess execution
-│   │   ├── api_adapter.py      # API integration (placeholder)
+│   │   ├── api_adapter.py      # REST API client with authentication (NEW)
 │   │   └── vcs_adapter.py      # VCS integration (placeholder)
 │   ├── observability/    # Monitoring and tracing
 │   │   ├── logger.py           # Structured logging
@@ -101,12 +103,14 @@ async def main():
     # Create the orchestrator
     orchestrator = Orchestrator()
 
-    # Register agents
-    orchestrator.register_agent(PMAgent())
-    orchestrator.register_agent(DevAgent())
-    orchestrator.register_agent(QAAgent())
-    orchestrator.register_agent(SecurityAgent())
-    orchestrator.register_agent(DocsAgent())
+    # Register agents (with optional AutoGen LLM integration)
+    # Set ORCHESTRATOR_LLM_API_KEY environment variable to enable AutoGen
+    enable_autogen = True  # or False for rule-based responses
+    orchestrator.register_agent(PMAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(DevAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(QAAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(SecurityAgent(enable_autogen=enable_autogen))
+    orchestrator.register_agent(DocsAgent(enable_autogen=enable_autogen))
 
     # Start the orchestrator
     await orchestrator.start()
@@ -323,6 +327,111 @@ manager = PluginManager()
 await manager.register(MyPlugin())
 ```
 
+## AutoGen LLM Integration (NEW in v0.4.0)
+
+The orchestrator now supports optional AutoGen framework integration for AI-powered agent responses:
+
+```python
+from orchestrator.agents import DevAgent, PMAgent
+
+# Enable AutoGen for intelligent LLM-powered responses
+# Requires ORCHESTRATOR_LLM_API_KEY environment variable
+dev_agent = DevAgent(enable_autogen=True)
+pm_agent = PMAgent(enable_autogen=True)
+
+# Without AutoGen (rule-based responses)
+dev_agent = DevAgent(enable_autogen=False)  # or just DevAgent()
+```
+
+**Features:**
+- All 9 agents support AutoGen integration (PM, Dev, QA, Security, Docs, Architect, Research, DevOps, Data)
+- Graceful fallback to rule-based responses when API key not configured
+- Configurable via environment variables
+- Per-agent enable/disable control
+
+**Configuration:**
+```bash
+# Required for AutoGen integration
+export ORCHESTRATOR_LLM_API_KEY=your_openai_api_key
+
+# Optional - customize LLM behavior
+export ORCHESTRATOR_LLM_MODEL=gpt-4  # default: gpt-4
+export ORCHESTRATOR_LLM_MAX_TOKENS=4096
+export ORCHESTRATOR_LLM_TEMPERATURE=0.7
+```
+
+**Example:**
+```bash
+# Run the AutoGen integration example
+export ORCHESTRATOR_LLM_API_KEY=your_key
+python examples/autogen_integration_example.py
+```
+
+See `examples/autogen_integration_example.py` for a complete demonstration.
+
+## REST API Adapter (NEW in v0.4.0)
+
+The orchestrator now includes a full-featured REST API client adapter:
+
+```python
+from orchestrator.adapters.api_adapter import APIAdapter, AuthType, HTTPMethod
+
+# Create adapter with authentication
+adapter = APIAdapter(
+    base_url="https://api.example.com",
+    auth_type=AuthType.BEARER,
+    auth_token="your_token_here",
+    timeout=30,
+)
+
+# Connect and make requests
+await adapter.connect()
+
+# GET request
+result = await adapter.get("/api/users")
+if result.success:
+    users = result.data["response"]
+
+# POST request with JSON
+result = await adapter.post(
+    "/api/users",
+    json={"name": "John", "email": "john@example.com"}
+)
+
+# Cleanup
+await adapter.disconnect()
+```
+
+**Features:**
+- All HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
+- Multiple authentication types (Bearer, API Key, Basic, Custom)
+- Async request handling with aiohttp
+- Configurable timeout and custom headers
+- Comprehensive error handling
+
+**Authentication Types:**
+```python
+# Bearer Token
+adapter = APIAdapter(auth_type=AuthType.BEARER, auth_token="token")
+
+# API Key (X-API-Key header)
+adapter = APIAdapter(auth_type=AuthType.API_KEY, auth_token="key")
+
+# No authentication
+adapter = APIAdapter(auth_type=AuthType.NONE)
+```
+
+**Example:**
+```bash
+# Install aiohttp for API adapter
+pip install aiohttp
+
+# Run the comprehensive example
+python examples/api_adapter_example.py
+```
+
+See `examples/api_adapter_example.py` for complete demonstrations including error handling and different authentication patterns.
+
 ## Configuration
 
 Configuration can be set via environment variables:
@@ -334,9 +443,9 @@ export ORCHESTRATOR_ENV=development  # development, testing, staging, production
 # Debug mode
 export ORCHESTRATOR_DEBUG=false
 
-# LLM Configuration (placeholder)
-export ORCHESTRATOR_LLM_PROVIDER=NOT_CONFIGURED
-export ORCHESTRATOR_LLM_MODEL=NOT_CONFIGURED
+# LLM Configuration (AutoGen Integration - NEW in v0.4.0)
+export ORCHESTRATOR_LLM_API_KEY=your_openai_api_key  # Required for AutoGen LLM integration
+export ORCHESTRATOR_LLM_MODEL=gpt-4  # or gpt-3.5-turbo, gpt-4-turbo, etc.
 export ORCHESTRATOR_LLM_MAX_TOKENS=4096
 export ORCHESTRATOR_LLM_TEMPERATURE=0.7
 
@@ -381,7 +490,7 @@ mypy src/
 
 ## Roadmap
 
-### Phase 1 (Current) - MVP
+### Phase 1 - MVP ✅ COMPLETED
 - [x] Core agent framework
 - [x] Task management and distribution
 - [x] Dynamic conversation system
@@ -389,11 +498,12 @@ mypy src/
 - [x] Placeholder adapters
 - [x] Basic observability
 
-### Phase 2 - Integration
-- [ ] AutoGen integration
-- [ ] LLM provider configuration
-- [ ] CLI adapter implementation
-- [ ] API adapter implementation
+### Phase 2 - Integration (In Progress)
+- [x] AutoGen integration ✅ NEW in v0.4.0
+- [x] LLM provider configuration ✅ NEW in v0.4.0
+- [x] CLI adapter implementation ✅
+- [x] REST API adapter implementation ✅ NEW in v0.4.0
+- [ ] VCS/Git adapter implementation
 
 ### Phase 3 - Advanced Features
 - [ ] VCS/Git integration
